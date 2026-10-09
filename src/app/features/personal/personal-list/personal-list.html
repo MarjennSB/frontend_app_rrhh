@@ -1,0 +1,354 @@
+<!-- start page title -->
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0">Personal</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="javascript: void(0);">Gestión de Personal</a></li>
+          <li class="breadcrumb-item active">Personal</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- end page title -->
+
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card" id="personalList">
+      <div class="card-header border-0">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title mb-0 flex-grow-1">Asignaciones de Personal</h5>
+          <div class="flex-shrink-0">
+            <button class="btn btn-danger add-btn" (click)="openCreateModal()">
+              <i class="ri-add-line align-bottom me-1"></i> Nueva Asignación
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body border border-dashed border-end-0 border-start-0">
+        <form>
+          <div class="row g-3">
+            <div class="col-xxl-5 col-sm-12">
+              <div class="search-box">
+                <input type="text" class="form-control search bg-light border-light"
+                  placeholder="Buscar por documento, nombres, cargo o unidad..." [value]="searchTerm()"
+                  (input)="onSearch($any($event.target).value)">
+                <i class="ri-search-line search-icon"></i>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive table-card mb-4">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light text-muted">
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Persona</th>
+                <th>Documento</th>
+                <th>Cargo</th>
+                <th>Unidad Organizacional</th>
+                <th>Horario</th>
+                <th>Estado</th>
+                <th>Documentos</th>
+                <th>Contratos</th>
+                <th>Vacaciones</th>
+                <th>Permisos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (isLoading()) {
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                  </div>
+                </td>
+              </tr>
+              }
+
+              @for (personal of filteredPersonals(); track personal.id; let i = $index) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ personal.person?.first_name }} {{ personal.person?.last_name }} {{
+                  personal.person?.second_last_name }}</td>
+                <td>{{ personal.person?.document_number || '—' }}</td>
+                <td>
+                  <span class="badge bg-info-subtle text-info me-1">{{ personal.position?.name || '—' }}</span>
+                </td>
+                <td>{{ personal.organizational_unit?.name || '—' }}</td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary me-1">{{ personal.schedule?.name || '—' }}</span>
+                </td>
+                <td>
+                  @if (personal.status) {
+                  <span class="badge bg-success-subtle text-success text-uppercase">Activo</span>
+                  } @else {
+                  <span class="badge bg-danger-subtle text-danger text-uppercase">Inactivo</span>
+                  }
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="openDocumentsModal(personal)" title="Gestionar Documentos">
+                    <i class="ri-folder-add-line align-bottom"></i>
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-warning" (click)="openContractsModal(personal)" title="Gestionar Contratos">
+                    <i class="ri-file-paper-2-line align-bottom"></i>
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-success" (click)="openVacationsModal(personal)" title="Gestionar Vacaciones">
+                    <i class="ri-flight-takeoff-line align-bottom"></i>
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openIncidentsModal(personal)" title="Gestionar Permisos y Faltas">
+                    <i class="ri-stethoscope-line align-bottom"></i>
+                  </button>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-info" (click)="openEditModal(personal)"
+                      title="Editar">
+                      <i class="ri-pencil-fill"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm" [class.btn-outline-danger]="personal.status"
+                      [class.btn-outline-success]="!personal.status" (click)="toggleActive(personal)"
+                      [title]="personal.status ? 'Desactivar' : 'Activar'">
+                      <i [class]="personal.status ? 'ri-forbid-line' : 'ri-check-line'"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+
+          @if (!isLoading() && filteredPersonals().length === 0) {
+          <div class="noresult py-5">
+            <div class="text-center">
+              <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop" colors="primary:#121331,secondary:#08a88a" style="width:75px;height:75px"></lord-icon>
+              <h5 class="mt-2">No se encontraron asignaciones</h5>
+              <p class="text-muted mb-0">No hay registros que coincidan con la búsqueda.</p>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Crear / Editar ========== -->
+<div class="modal fade zoomIn" id="personalModal" tabindex="-1" aria-labelledby="personalModalLabel" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-info-subtle">
+        <h5 class="modal-title" id="personalModalLabel">
+          {{ isEditing() ? 'Editar Asignación' : 'Nueva Asignación' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form autocomplete="off" [formGroup]="personalForm" (ngSubmit)="savePersonal()">
+        <div class="modal-body">
+          @if (errorMsg()) {
+          <div class="alert alert-danger py-2 mb-3">{{ errorMsg() }}</div>
+          }
+
+          <div class="row g-3">
+            <div class="col-lg-12">
+              <label class="form-label">Persona <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="text" class="form-control bg-light text-muted" 
+                  [value]="selectedPersonDisplay() || 'Ninguna persona seleccionada...'" 
+                  readonly 
+                  [class.is-invalid]="isFieldInvalid('person_id')">
+                <button class="btn btn-primary" type="button" (click)="openManagePersonsModal()">
+                  <i class="ri-search-line align-bottom me-1"></i> Buscar
+                </button>
+                @if (isFieldInvalid('person_id')) {
+                <div class="invalid-feedback d-block">Debe seleccionar una persona.</div>
+                }
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Unidad Organizacional <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="organizational_unit_id"
+                [class.is-invalid]="isFieldInvalid('organizational_unit_id')">
+                <option [value]="0" disabled>Seleccione una unidad...</option>
+                @for (org of availableOrgUnits(); track org.id) {
+                <option [value]="org.id">{{ org.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('organizational_unit_id')) {
+              <div class="invalid-feedback">Debe seleccionar una unidad organizacional.</div>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Cargo <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="position_id"
+                [class.is-invalid]="isFieldInvalid('position_id')">
+                <option [value]="0" disabled>Seleccione un cargo...</option>
+                @for (pos of availablePositions(); track pos.id) {
+                <option [value]="pos.id">{{ pos.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('position_id')) {
+              <div class="invalid-feedback">Debe seleccionar un cargo.</div>
+              }
+            </div>
+
+            <div class="col-lg-12">
+              <label class="form-label">Horario de Trabajo <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="schedule_id"
+                [class.is-invalid]="isFieldInvalid('schedule_id')">
+                <option [value]="0" disabled>Seleccione un horario...</option>
+                @for (sch of availableSchedules(); track sch.id) {
+                <option [value]="sch.id">{{ sch.name }} ({{ sch.start_time | slice:0:5 }} - {{ sch.end_time | slice:0:5 }})</option>
+                }
+              </select>
+              @if (isFieldInvalid('schedule_id')) {
+              <div class="invalid-feedback">Debe seleccionar un horario de trabajo.</div>
+              }
+            </div>
+
+            <div class="col-lg-12">
+              <div class="form-check form-switch form-switch-md mt-4 mb-2" dir="ltr">
+                <input type="checkbox" class="form-check-input" id="statusSwitch" formControlName="status">
+                <label class="form-check-label fw-bold" for="statusSwitch">Asignación Activa</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-success">
+            {{ isEditing() ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast éxito -->
+@if (successMsg()) {
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div class="toast show align-items-center text-bg-success border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="ri-checkbox-circle-line me-2"></i>{{ successMsg() }}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="successMsg.set(null)"></button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Toast advertencia -->
+@if (warningMsg()) {
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div class="toast show align-items-center text-bg-warning border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="ri-error-warning-line me-2"></i>{{ warningMsg() }}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="warningMsg.set(null)"></button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- ========== Modal Gestionar Personas ========== -->
+<div class="modal fade zoomIn" id="managePersonsModal" tabindex="-1" aria-labelledby="managePersonsModalLabel"
+  aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-primary-subtle">
+        <h5 class="modal-title" id="managePersonsModalLabel">Buscar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <!-- El padding 0 es porque app-persons-list ya trae tarjetas que dan espaciado -->
+        <app-persons-list [isModalMode]="true" (onSelectPerson)="onPersonSelected($event)">
+        </app-persons-list>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Gestionar Documentos del Personal ========== -->
+<div class="modal fade zoomIn" id="personalDocumentsModal" tabindex="-1" aria-labelledby="personalDocumentsModalLabel"
+  aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-primary-subtle">
+        <h5 class="modal-title" id="personalDocumentsModalLabel">Documentos del Personal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <app-personal-documents-list [isModalMode]="true" [personalId]="selectedPersonalIdForDocs()">
+        </app-personal-documents-list>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Gestionar Contratos del Personal ========== -->
+<div class="modal fade zoomIn" id="personalContractsModal" tabindex="-1" aria-labelledby="personalContractsModalLabel"
+  aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-warning-subtle">
+        <h5 class="modal-title" id="personalContractsModalLabel">Contratos del Personal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <app-contracts-list [isModalMode]="true" [personalId]="selectedPersonalIdForContracts()">
+        </app-contracts-list>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Gestionar Vacaciones ========== -->
+<div class="modal fade zoomIn" id="personalVacationsModal" tabindex="-1" aria-labelledby="personalVacationsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-success-subtle">
+        <h5 class="modal-title" id="personalVacationsModalLabel">Gestión de Vacaciones</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <app-vacations-modal [personalId]="selectedPersonalIdForVacations()">
+        </app-vacations-modal>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Gestionar Permisos/Incidencias ========== -->
+<div class="modal fade zoomIn" id="personalIncidentsModal" tabindex="-1" aria-labelledby="personalIncidentsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-secondary-subtle">
+        <h5 class="modal-title" id="personalIncidentsModalLabel">Permisos y Faltas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <app-incidents-modal [personalId]="selectedPersonalIdForIncidents()">
+        </app-incidents-modal>
+      </div>
+    </div>
+  </div>
+</div>

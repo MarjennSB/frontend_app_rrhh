@@ -1,4 +1,4 @@
-export interface PaginatedNetworks<T> {
+export interface PaginatedResponse<T> {
   data: T[];
   meta: {
     total: number;
@@ -6,11 +6,4 @@ export interface PaginatedNetworks<T> {
     limit: number;
     total_pages: number;
   }
-}
-
-export interface NetworkDevicesResponse<T> {
-  network_id: number;
-  cidr: string;
-  total: number;
-  devices: T[];
 }

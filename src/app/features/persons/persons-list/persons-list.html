@@ -1,0 +1,356 @@
+<!-- start page title -->
+@if (!isModalMode) {
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0">Personas</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="javascript: void(0);">Gestión de Empleados</a></li>
+          <li class="breadcrumb-item active">Personas</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+}
+<!-- end page title -->
+
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card" id="personsList">
+
+      <div class="card-header border-0">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title mb-0 flex-grow-1">Listado de Personas</h5>
+          <div class="flex-shrink-0">
+            <button class="btn btn-danger add-btn" (click)="openCreateModal()">
+              <i class="ri-add-line align-bottom me-1"></i> Nueva Persona
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body border border-dashed border-end-0 border-start-0">
+        <form>
+          <div class="row g-3">
+            <div class="col-xxl-5 col-sm-12">
+              <div class="search-box">
+                <input
+                  type="text"
+                  class="form-control search bg-light border-light"
+                  placeholder="Buscar por documento, email, nombre..."
+                  [value]="searchTerm()"
+                  (input)="onSearch($any($event.target).value)"
+                >
+                <i class="ri-search-line search-icon"></i>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive table-card mb-4">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light text-muted">
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Documento</th>
+                <th>Nombres</th>
+                <th>Apellidos</th>
+                <th>Email</th>
+                <th>Género</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              @if (isLoading()) {
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+              @for (person of filteredPersons(); track person.id; let i = $index) {
+                <tr>
+                  <td>{{ i + 1 }}</td>
+                  <td>{{ person.document_number }}</td>
+                  <td>{{ person.first_name }}</td>
+                  <td>{{ person.last_name }}</td>
+                  <td>{{ person.email || '—' }}</td>
+                  <td>
+                      <span class="badge bg-info-subtle text-info me-1">{{ person.gender?.name || '—' }}</span>
+                  </td>
+                  <td>
+                    @if (person.status) {
+                      <span class="badge bg-success-subtle text-success text-uppercase">Activo</span>
+                    } @else {
+                      <span class="badge bg-danger-subtle text-danger text-uppercase">Inactivo</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      @if (isModalMode) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-success rounded-pill px-3 shadow-none"
+                          (click)="selectPerson(person)"
+                          title="Seleccionar"
+                        >
+                          <i class="ri-check-double-line align-bottom me-1"></i> Seleccionar
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-info"
+                        (click)="openEditModal(person)"
+                        title="Editar"
+                      >
+                        <i class="ri-pencil-fill"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-outline-danger]="person.status"
+                        [class.btn-outline-success]="!person.status"
+                        (click)="toggleActive(person)"
+                        [title]="person.status ? 'Desactivar' : 'Activar'"
+                      >
+                        <i [class]="person.status ? 'ri-forbid-line' : 'ri-check-line'"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+            </tbody>
+          </table>
+
+          @if (!isLoading() && filteredPersons().length === 0) {
+            <div class="noresult py-5">
+              <div class="text-center">
+                <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop" colors="primary:#121331,secondary:#08a88a" style="width:75px;height:75px"></lord-icon>
+                <h5 class="mt-2">No se encontraron personas</h5>
+                <p class="text-muted mb-0">No hay personas que coincidan con la búsqueda.</p>
+              </div>
+            </div>
+          }
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Crear / Editar ========== -->
+<div class="modal fade zoomIn" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-info-subtle">
+        <h5 class="modal-title" id="personModalLabel">
+          {{ isEditing() ? 'Editar Persona' : 'Nueva Persona' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form autocomplete="off" [formGroup]="personForm" (ngSubmit)="savePerson()">
+        <div class="modal-body">
+
+          @if (errorMsg()) {
+            <div class="alert alert-danger py-2 mb-3">{{ errorMsg() }}</div>
+          }
+
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <label class="form-label">Tipo Doc. <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="identity_document_type_id" [class.is-invalid]="isFieldInvalid('identity_document_type_id')">
+                <option [value]="0" disabled>Seleccione un tipo...</option>
+                @for (doc of availableDocTypes(); track doc.id) {
+                  <option [value]="doc.id">{{ doc.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('identity_document_type_id')) {
+                <div class="invalid-feedback">Seleccione un tipo de documento.</div>
+              }
+            </div>
+            
+            <div class="col-lg-6">
+              <label class="form-label">Núm. Documento <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('document_number')"
+                placeholder="Ej: 72345678"
+                formControlName="document_number"
+              >
+              @if (isFieldInvalid('document_number')) {
+                <div class="invalid-feedback">El documento es obligatorio.</div>
+              }
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Nombres <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('first_name')"
+                placeholder="Nombres"
+                formControlName="first_name"
+              >
+              @if (isFieldInvalid('first_name')) {
+                <div class="invalid-feedback">Los nombres son obligatorios.</div>
+              }
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Apellido Paterno</label>
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('last_name')"
+                placeholder="Apellido Paterno"
+                formControlName="last_name"
+              >
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Apellido Materno</label>
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('second_last_name')"
+                placeholder="Apellido Materno"
+                formControlName="second_last_name"
+              >
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('email')"
+                placeholder="Ej: persona@correo.com"
+                formControlName="email"
+              >
+              @if (isFieldInvalid('email')) {
+                <div class="invalid-feedback">Ingrese un email válido.</div>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Teléfono</label>
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('phone_number')"
+                placeholder="Ej: 987654321"
+                formControlName="phone_number"
+              >
+            </div>
+
+            <div class="col-lg-12">
+              <label class="form-label">Género <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="gender_id" [class.is-invalid]="isFieldInvalid('gender_id')">
+                <option [value]="0" disabled>Seleccione...</option>
+                @for (gen of availableGenders(); track gen.id) {
+                  <option [value]="gen.id">{{ gen.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('gender_id')) {
+                <div class="invalid-feedback">Seleccione un género.</div>
+              }
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Departamento <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="department_id" [class.is-invalid]="isFieldInvalid('department_id')">
+                <option value="" disabled>Seleccione...</option>
+                @for (dept of allDepartments(); track dept.id) {
+                  <option [value]="dept.id">{{ dept.name || dept.description }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('department_id')) {
+                <div class="invalid-feedback">Seleccione un departamento.</div>
+              }
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Provincia <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="province_id" [class.is-invalid]="isFieldInvalid('province_id')">
+                <option value="" disabled>Seleccione...</option>
+                @for (prov of availableProvinces(); track prov.id) {
+                  <option [value]="prov.id">{{ prov.name || prov.description }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('province_id')) {
+                <div class="invalid-feedback">Seleccione una provincia.</div>
+              }
+            </div>
+
+            <div class="col-lg-4">
+              <label class="form-label">Distrito <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="district_id" [class.is-invalid]="isFieldInvalid('district_id')">
+                <option value="" disabled>Seleccione...</option>
+                @for (dist of availableDistricts(); track dist.id) {
+                  <option [value]="dist.id">{{ dist.name || dist.description }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('district_id')) {
+                <div class="invalid-feedback">Seleccione un distrito.</div>
+              }
+            </div>
+
+            <div class="col-lg-12">
+              <div class="form-check form-switch form-switch-md mt-4 mb-2" dir="ltr">
+                <input type="checkbox" class="form-check-input" id="statusSwitch" formControlName="status">
+                <label class="form-check-label fw-bold" for="statusSwitch">Persona Activa</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-success">
+            {{ isEditing() ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast éxito -->
+@if (successMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-success border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-checkbox-circle-line me-2"></i>{{ successMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="successMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Toast advertencia -->
+@if (warningMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-warning border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-error-warning-line me-2"></i>{{ warningMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="warningMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}

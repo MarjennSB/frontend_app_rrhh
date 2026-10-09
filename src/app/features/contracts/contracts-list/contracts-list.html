@@ -1,0 +1,260 @@
+@if (!isModalMode) {
+<!-- start page title -->
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0">Contratos</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="javascript: void(0);">Gestión de Empleados</a></li>
+          <li class="breadcrumb-item active">Contratos</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- end page title -->
+}
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card" id="contractsList">
+      <div class="card-header border-0">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title mb-0 flex-grow-1">Listado de Contratos</h5>
+          <div class="flex-shrink-0">
+            <button class="btn btn-danger add-btn" (click)="openCreateModal()">
+              <i class="ri-add-line align-bottom me-1"></i> Nuevo Contrato
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body border border-dashed border-end-0 border-start-0">
+        <form>
+          <div class="row g-3">
+            <div class="col-xxl-5 col-sm-12">
+              <div class="search-box">
+                <input
+                  type="text"
+                  class="form-control search bg-light border-light"
+                  placeholder="Buscar por documento, nombre o tipo de contrato..."
+                  [value]="searchTerm()"
+                  (input)="onSearch($any($event.target).value)"
+                >
+                <i class="ri-search-line search-icon"></i>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive table-card mb-4">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light text-muted">
+              <tr>
+              <tr>
+                <th style="width: 50px;">#</th>
+                @if (!isModalMode) {
+                  <th>Persona Asignada</th>
+                }
+                <th>Tipo de Contrato</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Salario</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (isLoading()) {
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+              @for (contract of filteredContracts(); track contract.id; let i = $index) {
+                <tr>
+                  <td>{{ i + 1 }}</td>
+                  @if (!isModalMode) {
+                    <td>{{ contract.personal?.person?.first_name }} {{ contract.personal?.person?.last_name }} <br><small class="text-muted">{{ contract.personal?.person?.document_number }}</small></td>
+                  }
+                  <td>
+                    <span class="badge bg-info-subtle text-info me-1">{{ contract.contract_type?.name || '—' }}</span>
+                  </td>
+                  <td>{{ contract.start_date | date:'dd/MM/yyyy' }}</td>
+                  <td>{{ contract.end_date ? (contract.end_date | date:'dd/MM/yyyy') : 'Indefinido' }}</td>
+                  <td>{{ contract.salary | currency:'PEN':'symbol' }}</td>
+                  <td>
+                    @if (contract.status) {
+                      <span class="badge bg-success-subtle text-success text-uppercase">Activo</span>
+                    } @else {
+                      <span class="badge bg-danger-subtle text-danger text-uppercase">Inactivo</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-info"
+                        (click)="openEditModal(contract)"
+                        title="Editar"
+                      >
+                        <i class="ri-pencil-fill"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-outline-danger]="contract.status"
+                        [class.btn-outline-success]="!contract.status"
+                        (click)="toggleActive(contract)"
+                        [title]="contract.status ? 'Desactivar' : 'Activar'"
+                      >
+                        <i [class]="contract.status ? 'ri-forbid-line' : 'ri-check-line'"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          @if (!isLoading() && filteredContracts().length === 0) {
+            <div class="noresult py-5">
+              <div class="text-center">
+                <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop" colors="primary:#121331,secondary:#08a88a" style="width:75px;height:75px"></lord-icon>
+                <h5 class="mt-2">No se encontraron contratos</h5>
+                <p class="text-muted mb-0">No hay registros que coincidan con la búsqueda.</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Crear / Editar ========== -->
+<div class="modal fade zoomIn" id="contractModal" tabindex="-1" aria-labelledby="contractModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-info-subtle">
+        <h5 class="modal-title" id="contractModalLabel">
+          {{ isEditing() ? 'Editar Contrato' : 'Nuevo Contrato' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form autocomplete="off" [formGroup]="contractForm" (ngSubmit)="saveContract()">
+        <div class="modal-body">
+          @if (errorMsg()) {
+            <div class="alert alert-danger py-2 mb-3">{{ errorMsg() }}</div>
+          }
+
+          <div class="row g-3">
+            @if (!isModalMode) {
+            <div class="col-lg-12">
+              <label class="form-label">Persona Asignada <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="personal_id" [class.is-invalid]="isFieldInvalid('personal_id')">
+                <option [value]="0" disabled>Seleccione personal asignado...</option>
+                @for (p of availablePersonals(); track p.id) {
+                  <option [value]="p.id">{{ p.person?.document_number }} - {{ p.person?.first_name }} {{ p.person?.last_name }} ({{ p.position?.name }})</option>
+                }
+              </select>
+              @if (isFieldInvalid('personal_id')) {
+                <div class="invalid-feedback">Debe seleccionar una persona asignada.</div>
+              }
+            </div>
+            }
+
+            <div class="col-lg-6">
+              <label class="form-label">Tipo de Contrato <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="contract_type_id" [class.is-invalid]="isFieldInvalid('contract_type_id')">
+                <option [value]="0" disabled>Seleccione un tipo de contrato...</option>
+                @for (tc of unassignedContractTypes; track tc.id) {
+                  <option [value]="tc.id">{{ tc.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('contract_type_id')) {
+                <div class="invalid-feedback">Debe seleccionar un tipo de contrato.</div>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Salario <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">S/</span>
+                <input type="number" class="form-control" formControlName="salary" [class.is-invalid]="isFieldInvalid('salary')" placeholder="Ej. 1500">
+                @if (isFieldInvalid('salary')) {
+                  <div class="invalid-feedback">El salario es obligatorio y debe ser mayor o igual a 0.</div>
+                }
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Fecha de Inicio <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="start_date" [class.is-invalid]="isFieldInvalid('start_date')">
+              @if (isFieldInvalid('start_date')) {
+                <div class="invalid-feedback">La fecha de inicio es obligatoria.</div>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Fecha de Fin</label>
+              <input type="date" class="form-control" formControlName="end_date" [class.is-invalid]="isFieldInvalid('end_date')">
+            </div>
+
+            <div class="col-lg-12">
+              <label class="form-label">Observaciones</label>
+              <textarea class="form-control" formControlName="observation" rows="3" placeholder="Comentarios adicionales..."></textarea>
+            </div>
+
+            <div class="col-lg-12">
+              <div class="form-check form-switch form-switch-md mt-4 mb-2" dir="ltr">
+                <input type="checkbox" class="form-check-input" id="statusSwitch" formControlName="status">
+                <label class="form-check-label fw-bold" for="statusSwitch">Contrato Activo</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-success">
+            {{ isEditing() ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast éxito -->
+@if (successMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-success border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-checkbox-circle-line me-2"></i>{{ successMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="successMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Toast advertencia/desactivado -->
+@if (warningMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-warning border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-error-warning-line me-2"></i>{{ warningMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="warningMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}

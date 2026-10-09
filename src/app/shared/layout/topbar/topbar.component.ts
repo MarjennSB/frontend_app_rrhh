@@ -1,10 +1,8 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth';
 import { TokenService } from '../../../core/services/token';
-import { WebsocketService } from '../../../core/services/websocket.service';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-topbar',
@@ -13,36 +11,14 @@ import { Subscription } from 'rxjs';
   templateUrl: './topbar.component.html',
   styles: [':host { display: contents; }'],
 })
-export class TopbarComponent implements OnInit, OnDestroy {
+export class TopbarComponent {
   private readonly authService = inject(AuthService);
   private readonly tokenService = inject(TokenService);
-  private readonly wsService = inject(WebsocketService);
 
   readonly currentUser = this.tokenService.currentUser;
   
   hasUnreadAlert = false;
   latestAlert: any = null;
-  private wsSubscription?: Subscription;
-
-  ngOnInit() {
-    this.wsService.connectGlobal();
-    this.wsSubscription = this.wsService.onGlobalMessage().subscribe((msg) => {
-      if (msg.type === 'CRITICAL_DEVICE_DOWN') {
-        this.hasUnreadAlert = true;
-        this.latestAlert = msg;
-        this.showToast();
-      } else if (msg.type === 'CRITICAL_DEVICE_UP') {
-        this.latestAlert = msg;
-        this.showToast();
-      }
-    });
-  }
-
-  ngOnDestroy() {
-    if (this.wsSubscription) {
-      this.wsSubscription.unsubscribe();
-    }
-  }
 
   showToast() {
     const toastEl = document.getElementById('vipToast');

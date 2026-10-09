@@ -20,13 +20,12 @@ export class AuthService {
   private readonly authUrl = `${environment.apiUrl}/auth/login`;
 
     login(credentials: LoginRequestDto): Observable<LoginResponseDto> {
-    const body = new HttpParams()
-      .set('username', credentials.email || '' ) // FastAPI OAuth2 expects 'username'
-      .set('password', credentials.password || '' );
+    const body = {
+      email: credentials.email,
+      password: credentials.password
+    };
 
-    return this.http.post<LoginResponseDto>(this.authUrl, body.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    }).pipe(
+    return this.http.post<LoginResponseDto>(this.authUrl, body).pipe(
       tap((r) => {
         this.tokenService.saveToken(r.access_token);
         this.tokenService.saveUser(r.user);

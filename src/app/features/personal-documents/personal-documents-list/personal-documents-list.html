@@ -1,0 +1,262 @@
+<!-- start page title -->
+@if (!isModalMode) {
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0">Documentos del Personal</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="javascript: void(0);">Gestión de Empleados</a></li>
+          <li class="breadcrumb-item active">Documentos</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+}
+<!-- end page title -->
+
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card" id="documentsList">
+      <div class="card-header border-0">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title mb-0 flex-grow-1">Listado de Documentos</h5>
+          <div class="flex-shrink-0">
+            <button class="btn btn-danger add-btn" (click)="openCreateModal()">
+              <i class="ri-add-line align-bottom me-1"></i> Registrar Documento
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body border border-dashed border-end-0 border-start-0">
+        <form>
+          <div class="row g-3">
+            <div class="col-xxl-5 col-sm-12">
+              <div class="search-box">
+                <input
+                  type="text"
+                  class="form-control search bg-light border-light"
+                  placeholder="Buscar por persona, documento o tipo..."
+                  [value]="searchTerm()"
+                  (input)="onSearch($any($event.target).value)"
+                >
+                <i class="ri-search-line search-icon"></i>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive table-card mb-4">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light text-muted">
+              <tr>
+                <th style="width: 50px;">#</th>
+                @if (!isModalMode) {
+                  <th>Persona Asignada</th>
+                }
+                <th>Tipo de Documento</th>
+                <th>Nombre del Archivo</th>
+                <th>Fecha Documento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (isLoading()) {
+                <tr>
+                  <td colspan="7" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+              @for (doc of filteredDocuments(); track doc.id; let i = $index) {
+                <tr>
+                  <td>{{ i + 1 }}</td>
+                  @if (!isModalMode) {
+                    <td>{{ doc.personal?.person?.first_name }} {{ doc.personal?.person?.last_name }} <br><small class="text-muted">{{ doc.personal?.person?.document_number }}</small></td>
+                  }
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary me-1">{{ doc.personal_document_type?.name || '—' }}</span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm flex-shrink-0 me-3">
+                        <div class="avatar-title bg-soft-info text-info rounded fs-20">
+                          <i class="ri-file-text-line"></i>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h5 class="fs-14 mb-1">{{ doc.file_name }}</h5>
+                        @if (doc.file_path) {
+                          <a [href]="getFileUrl(doc.file_path)" target="_blank" class="text-muted"><i class="ri-external-link-line me-1"></i>Ver Archivo</a>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ doc.document_date | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    @if (doc.status) {
+                      <span class="badge bg-success-subtle text-success text-uppercase">Válido</span>
+                    } @else {
+                      <span class="badge bg-danger-subtle text-danger text-uppercase">Inválido</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-info"
+                        (click)="openEditModal(doc)"
+                        title="Editar"
+                      >
+                        <i class="ri-pencil-fill"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-outline-danger]="doc.status"
+                        [class.btn-outline-success]="!doc.status"
+                        (click)="toggleActive(doc)"
+                        [title]="doc.status ? 'Invalidar' : 'Validar'"
+                      >
+                        <i [class]="doc.status ? 'ri-forbid-line' : 'ri-check-line'"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          @if (!isLoading() && filteredDocuments().length === 0) {
+            <div class="noresult py-5">
+              <div class="text-center">
+                <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop" colors="primary:#121331,secondary:#08a88a" style="width:75px;height:75px"></lord-icon>
+                <h5 class="mt-2">No se encontraron documentos</h5>
+                <p class="text-muted mb-0">No hay registros que coincidan con la búsqueda.</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Modal Crear / Editar ========== -->
+<div class="modal fade zoomIn" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0">
+      <div class="modal-header p-3 bg-info-subtle">
+        <h5 class="modal-title" id="documentModalLabel">
+          {{ isEditing() ? 'Editar Documento' : 'Registrar Documento' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form autocomplete="off" [formGroup]="documentForm" (ngSubmit)="saveDocument()">
+        <div class="modal-body">
+          @if (errorMsg()) {
+            <div class="alert alert-danger py-2 mb-3">{{ errorMsg() }}</div>
+          }
+
+          <div class="row g-3">
+            @if (!isModalMode) {
+            <div class="col-lg-12">
+              <label class="form-label">Persona Asignada <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="personal_id" [class.is-invalid]="isFieldInvalid('personal_id')">
+                <option [value]="0" disabled>Seleccione personal asignado...</option>
+                @for (p of availablePersonals(); track p.id) {
+                  <option [value]="p.id">{{ p.person?.document_number }} - {{ p.person?.first_name }} {{ p.person?.last_name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('personal_id')) {
+                <div class="invalid-feedback">Debe seleccionar una persona asignada.</div>
+              }
+            </div>
+            }
+
+            <div class="col-lg-12">
+              <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="personal_document_type_id" [class.is-invalid]="isFieldInvalid('personal_document_type_id')">
+                <option [value]="0" disabled>Seleccione un tipo de documento...</option>
+                @for (dt of unassignedDocumentTypes; track dt.id) {
+                  <option [value]="dt.id">{{ dt.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('personal_document_type_id')) {
+                <div class="invalid-feedback">Debe seleccionar un tipo de documento.</div>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Archivo del Documento <span class="text-danger">*</span></label>
+              <input type="file" class="form-control" (change)="onFileSelected($event)" [class.is-invalid]="!selectedFile && !isEditing()">
+              @if (!selectedFile && !isEditing()) {
+                <div class="invalid-feedback">Debe adjuntar un archivo.</div>
+              }
+              @if (isEditing() && currentFileName()) {
+                <small class="text-muted d-block mt-1">Archivo actual: {{ currentFileName() }}</small>
+              }
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">Fecha del Documento <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="document_date" [class.is-invalid]="isFieldInvalid('document_date')">
+              @if (isFieldInvalid('document_date')) {
+                <div class="invalid-feedback">La fecha del documento es obligatoria.</div>
+              }
+            </div>
+
+            <div class="col-lg-12">
+              <div class="form-check form-switch form-switch-md mt-4 mb-2" dir="ltr">
+                <input type="checkbox" class="form-check-input" id="statusSwitch" formControlName="status">
+                <label class="form-check-label fw-bold" for="statusSwitch">Documento Válido / Activo</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-success">
+            {{ isEditing() ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast éxito -->
+@if (successMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-success border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-checkbox-circle-line me-2"></i>{{ successMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="successMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Toast advertencia -->
+@if (warningMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div class="toast show align-items-center text-bg-warning border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-error-warning-line me-2"></i>{{ warningMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="warningMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}

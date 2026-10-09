@@ -1,0 +1,134 @@
+<div class="card shadow-none border mb-0">
+  <div class="card-header d-flex justify-content-between align-items-center bg-light">
+    <h6 class="card-title mb-0">Historial de Vacaciones</h6>
+    <button class="btn btn-sm btn-success" (click)="openCreateModal()">
+      <i class="ri-add-line align-bottom me-1"></i> Programar Vacaciones
+    </button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tipo</th>
+            <th>Fecha Inicio</th>
+            <th>Fecha Fin</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="5" class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-success" role="status"></div> Cargando...
+              </td>
+            </tr>
+          } @else if (vacations().length === 0) {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                No hay vacaciones registradas para esta persona.
+              </td>
+            </tr>
+          } @else {
+            @for (vac of vacations(); track vac.id) {
+              <tr>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary">{{ vac.vacation_type?.name || 'Regular' }}</span>
+                </td>
+                <td>{{ vac.start_date | date:'dd/MM/yyyy' }}</td>
+                <td>{{ vac.end_date | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @if (vac.status) {
+                    <span class="badge bg-success-subtle text-success">Aprobado</span>
+                  } @else {
+                    <span class="badge bg-danger-subtle text-danger">Rechazado/Anulado</span>
+                  }
+                </td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-ghost-info me-1" (click)="openEditModal(vac)" title="Editar">
+                    <i class="ri-pencil-fill"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost-danger" (click)="deleteVacation(vac.id)" title="Eliminar">
+                    <i class="ri-delete-bin-fill"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Formulario de Vacaciones -->
+<div class="modal fade" id="vacationFormModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-light p-3">
+        <h5 class="modal-title">{{ isEditing() ? 'Editar Vacaciones' : 'Programar Vacaciones' }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="saveVacation()" autocomplete="off">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Tipo de Vacaciones <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="vacation_type_id" [class.is-invalid]="isFieldInvalid('vacation_type_id')">
+                <option [value]="0" disabled>Seleccione el tipo...</option>
+                @for (t of availableTypes(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+              @if (isFieldInvalid('vacation_type_id')) {
+                <div class="invalid-feedback">Seleccione un tipo.</div>
+              }
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Fecha de Inicio <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="start_date" [class.is-invalid]="isFieldInvalid('start_date')">
+              @if (isFieldInvalid('start_date')) {
+                <div class="invalid-feedback">La fecha de inicio es requerida.</div>
+              }
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Fecha de Fin <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="end_date" [class.is-invalid]="isFieldInvalid('end_date')">
+              @if (isFieldInvalid('end_date')) {
+                <div class="invalid-feedback">La fecha de fin es requerida.</div>
+              }
+            </div>
+            
+            <div class="col-12">
+              <div class="form-check form-switch form-switch-md">
+                <input type="checkbox" class="form-check-input" id="statusSwitchVacation" formControlName="status">
+                <label class="form-check-label fw-bold" for="statusSwitchVacation">Aprobadas / Válidas</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Guardar Vacaciones</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast éxito -->
+@if (successMsg()) {
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1060">
+    <div class="toast show align-items-center text-bg-success border-0" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="ri-checkbox-circle-line me-2"></i>{{ successMsg() }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="successMsg.set(null)"></button>
+      </div>
+    </div>
+  </div>
+}

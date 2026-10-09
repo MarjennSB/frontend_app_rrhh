@@ -1,35 +1,27 @@
-export interface Role {
-  id: number;
-  name: string;
-}
+import { Role } from './role.model';
 
 export interface User {
-  id: string;
-  username: string;
-  email: string;
-  first_name?: string;
+  id: number;
+  first_name: string;
   last_name?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  roles: Role[];
+  second_last_name?: string;
+  email: string;
+  role_id: number;
+  role?: Role;
+  profile_photo_path?: string;
+  status: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface CreateUserDto {
-  username: string;
-  email: string;
-  password: string;
-  first_name?: string;
+  first_name: string;
   last_name?: string;
-  role_ids: number[];
-  is_active?: boolean;
+  second_last_name?: string;
+  email: string;
+  role_id: number;
+  password?: string;
+  status?: boolean;
 }
 
-export interface UpdateUserDto {
-  username?: string;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-  role_ids?: number[];
-  is_active?: boolean;
-}
+export interface UpdateUserDto extends Partial<CreateUserDto> {}
